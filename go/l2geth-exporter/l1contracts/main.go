@@ -12,20 +12,20 @@ import (
 
 // OVMCTC interacts with the OVM CTC contract
 type OVMCTC struct {
-	ctx     context.Context
-	address common.Address
-	client  *ethclient.Client
+	Ctx     context.Context
+	Address common.Address
+	Client  *ethclient.Client
 }
 
-func (ovmctc *OVMCTC) getTotalElements() (*big.Int, error) {
+func (ovmctc *OVMCTC) GetTotalElements() (*big.Int, error) {
 
-	contract, err := bindings.NewOVMCanonicalTransactionChainCaller(ovmctc.address, ovmctc.client)
+	contract, err := bindings.NewOVMCanonicalTransactionChainCaller(ovmctc.Address, ovmctc.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	totalElements, err := contract.GetTotalElements(&bind.CallOpts{
-		Context: ovmctc.ctx,
+		Context: ovmctc.Ctx,
 	})
 	if err != nil {
 		return nil, err
