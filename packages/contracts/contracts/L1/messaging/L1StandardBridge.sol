@@ -24,23 +24,23 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
     using SafeERC20 for IERC20;
 
-    /********************************
-     * External Contract References *
-     ********************************/
+    /*************
+     * Variables *
+     *************/
 
     address public l2TokenBridge;
-
-    // Maps L1 token to L2 token to balance of the L1 token deposited
     mapping(address => mapping (address => uint256)) public deposits;
+
 
     /***************
      * Constructor *
      ***************/
 
-    // This contract lives behind a proxy, so the constructor parameters will go unused.
+    // Satisfy the Solidity compiler.
     constructor()
         CrossDomainEnabled(address(0))
     {}
+
 
     /******************
      * Initialization *
@@ -60,6 +60,7 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         messenger = _l1messenger;
         l2TokenBridge = _l2TokenBridge;
     }
+
 
     /**************
      * Depositing *

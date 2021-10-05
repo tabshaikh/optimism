@@ -1,0 +1,43 @@
+{
+  "name": "@eth-optimism/chugsplash",
+  "version": "0.1.0",
+  "main": "dist/index",
+  "files": [
+    "dist/**/*.js"
+  ],
+  "types": "dist/index",
+  "repository": "git@github.com:ethereum-optimism/chugsplash.git",
+  "author": "Optimism PBC",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "npx hardhat test",
+    "lint": "yarn lint:fix && yarn lint:check",
+    "lint:fix": "yarn lint:check --fix",
+    "lint:check": "eslint ",
+    "clean": "rm -rf ./dist ./tsconfig.build.tsbuildinfo"
+  },
+  "dependencies": {
+    "@eth-optimism/core-utils": "^0.6.0",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "dotenv": "^10.0.0",
+    "ethereum-waffle": "^3.3.0",
+    "ethers": "^5.2.0",
+    "handlebars": "^4.7.7",
+    "hardhat": "^2.3.0",
+    "lodash": "^4.17.21",
+    "merkletreejs": "^0.2.18",
+    "semver": "^7.3.5",
+    "yargs": "^17.2.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.18",
+    "@types/chai-as-promised": "^7.1.4",
+    "@types/mocha": "^8.2.2",
+    "@types/yargs": "^17.0.3",
+    "chai": "^4.3.4",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^8.4.0"
+  }
+}

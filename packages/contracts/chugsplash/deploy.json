@@ -1,0 +1,59 @@
+{
+  "contracts": {
+    "CanonicalTransactionChain": {
+      "source": "CanonicalTransactionChain",
+      "variables": {
+        "MIN_ROLLUP_TX_GAS": "{{ env.MIN_ROLLUP_TX_GAS }}",
+        "MAX_ROLLUP_TX_SIZE": "{{ env.MAX_ROLLUP_TX_SIZE }}",
+        "L2_GAS_DISCOUNT_DIVISOR": "{{ env.L2_GAS_DISCOUNT_DIVISOR }}",
+        "ENQUEUE_GAS_COST": "{{ env.ENQUEUE_GAS_COST }}",
+        "ENQUEUE_L2_GAS_PREPAID": "{{ env.ENQUEUE_L2_GAS_PREPAID }}",
+        "maxTransactionGasLimit": "{{ env.MAX_TRANSACTION_GAS_LIMIT }}",
+        "queue": "{{ contracts.ChainStorageContainer-CTC-queue }}",
+        "batches": "{{ contracts.ChainStorageContainer-CTC-batches }}"
+      }
+    },
+    "StateCommitmentChain": {
+      "source": "StateCommitmentChain",
+      "variables": {
+        "proposer": "{{ env.OVM_PROPOSER_ADDRESS }}",
+        "challengePeriod": "{{ env.CHALLENGE_PERIOD_SECONDS }}",
+        "sequencerPublishWindow": "{{ env.SEQUENCER_PUBLISH_WINDOW_SECONDS }}",
+        "batches": "{{ contracts.ChainStorageContainer-SCC-batches }}",
+        "ctc": "{{ contracts.CanonicalTransactionChain }}"
+      }
+    },
+    "ChainStorageContainer-CTC-batches": {
+      "source": "ChainStorageContainer",
+      "variables": {
+        "owner": "{{ contracts.CanonicalTransactionChain }}"
+      }
+    },
+    "ChainStorageContainer-CTC-queue": {
+      "source": "ChainStorageContainer",
+      "variables": {
+        "owner": "{{ contracts.CanonicalTransactionChain }}"
+      }
+    },
+    "ChainStorageContainer-SCC-batches": {
+      "source": "ChainStorageContainer",
+      "variables": {
+        "owner": "{{ contracts.CanonicalTransactionChain }}"
+      }
+    },
+    "L1CrossDomainMessenger": {
+      "source": "L1CrossDomainMessenger",
+      "variables": {
+        "ctc": "{{ contracts.CanonicalTransactionChain }}",
+        "scc": "{{ contracts.StateCommitmentChain }}"
+      }
+    },
+    "L1StandardBridge": {
+      "source": "L1StandardBridge",
+      "variables": {
+        "messenger": "{{ contracts.L1CrossDomainMessenger }}",
+        "l2TokenBridge": "{{ env.L2_STANDARD_BRIDGE_ADDRESS }}"
+      }
+    }
+  }
+}

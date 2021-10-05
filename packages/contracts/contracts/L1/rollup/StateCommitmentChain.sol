@@ -3,13 +3,11 @@ pragma solidity ^0.8.9;
 
 /* Library Imports */
 import { Lib_OVMCodec } from "../../libraries/codec/Lib_OVMCodec.sol";
-import { Lib_AddressResolver } from "../../libraries/resolver/Lib_AddressResolver.sol";
 import { Lib_MerkleTree } from "../../libraries/utils/Lib_MerkleTree.sol";
 
 /* Interface Imports */
 import { IStateCommitmentChain } from "./IStateCommitmentChain.sol";
 import { ICanonicalTransactionChain } from "./ICanonicalTransactionChain.sol";
-import { IBondManager } from "../verification/IBondManager.sol";
 import { IChainStorageContainer } from "./IChainStorageContainer.sol";
 
 /**
@@ -21,54 +19,22 @@ import { IChainStorageContainer } from "./IChainStorageContainer.sol";
  *
  * Runtime target: EVM
  */
-contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
+contract StateCommitmentChain is IStateCommitmentChain {
 
     /*************
-     * Constants *
+     * Variables *
      *************/
 
-    uint256 public FRAUD_PROOF_WINDOW;
-    uint256 public SEQUENCER_PUBLISH_WINDOW;
-
-
-    /***************
-     * Constructor *
-     ***************/
-
-    /**
-     * @param _libAddressManager Address of the Address Manager.
-     */
-    constructor(
-        address _libAddressManager,
-        uint256 _fraudProofWindow,
-        uint256 _sequencerPublishWindow
-    )
-        Lib_AddressResolver(_libAddressManager)
-    {
-        FRAUD_PROOF_WINDOW = _fraudProofWindow;
-        SEQUENCER_PUBLISH_WINDOW = _sequencerPublishWindow;
-    }
+    address public proposer;
+    uint256 public challengePeriod;
+    uint256 public sequencerPublishWindow;
+    IChainStorageContainer public batches;
+    ICanonicalTransactionChain public ctc;
 
 
     /********************
      * Public Functions *
      ********************/
-
-    /**
-     * Accesses the batch storage container.
-     * @return Reference to the batch storage container.
-     */
-    function batches()
-        public
-        view
-        returns (
-            IChainStorageContainer
-        )
-    {
-        return IChainStorageContainer(
-            resolve("ChainStorageContainer-SCC-batches")
-        );
-    }
 
     /**
      * @inheritdoc IStateCommitmentChain
@@ -94,7 +60,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             uint256 _totalBatches
         )
     {
-        return batches().length();
+        return batches.length();
     }
 
     /**
@@ -127,9 +93,9 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             "Actual batch start index does not match expected start index."
         );
 
-        // Proposers must have previously staked at the BondManager
+        // Currently you must be the proposer to append a state batch.
         require(
-            IBondManager(resolve("BondManager")).isCollateralized(msg.sender),
+            msg.sender == proposer,
             "Proposer does not have enough collateral posted"
         );
 
@@ -139,9 +105,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
         );
 
         require(
-            getTotalElements() + _batch.length <=
-                ICanonicalTransactionChain(resolve("CanonicalTransactionChain"))
-                .getTotalElements(),
+            getTotalElements() + _batch.length <= ctc.getTotalElements(),
             "Number of state roots cannot exceed the number of canonical transactions."
         );
 
@@ -161,22 +125,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
     )
         public
     {
-        require(
-            msg.sender == resolve("OVM_FraudVerifier"),
-            "State batches can only be deleted by the OVM_FraudVerifier."
-        );
-
-        require(
-            _isValidBatchHeader(_batchHeader),
-            "Invalid batch header."
-        );
-
-        require(
-            insideFraudProofWindow(_batchHeader),
-            "State batches can only be deleted within the fraud proof window."
-        );
-
-        _deleteBatch(_batchHeader);
+        revert("FUNCTION DISABLED");
     }
 
     /**
@@ -233,7 +182,8 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             timestamp != 0,
             "Batch header timestamp cannot be zero"
         );
-        return (timestamp + FRAUD_PROOF_WINDOW) > block.timestamp;
+
+        return (timestamp + challengePeriod) > block.timestamp;
     }
 
 
@@ -254,7 +204,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             uint40
         )
     {
-        bytes27 extraData = batches().getGlobalMetadata();
+        bytes27 extraData = batches.getGlobalMetadata();
 
         // solhint-disable max-line-length
         uint40 totalElements;
@@ -309,10 +259,9 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
     )
         internal
     {
-        address sequencer = resolve("OVM_Proposer");
         (uint40 totalElements, uint40 lastSequencerTimestamp) = _getBatchExtraData();
 
-        if (msg.sender == sequencer) {
+        if (msg.sender == proposer) {
             lastSequencerTimestamp = uint40(block.timestamp);
         } else {
             // We keep track of the last batch submitted by the sequencer so there's a window in
@@ -320,7 +269,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             // the chance of "system breaking" state roots being published while we're still in
             // testing mode. This window should be removed or significantly reduced in the future.
             require(
-                lastSequencerTimestamp + SEQUENCER_PUBLISH_WINDOW < block.timestamp,
+                lastSequencerTimestamp + sequencerPublishWindow < block.timestamp,
                 "Cannot publish state roots within the sequencer publication window."
             );
         }
@@ -344,7 +293,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             batchHeader.extraData
         );
 
-        batches().push(
+        batches.push(
             Lib_OVMCodec.hashBatchHeader(batchHeader),
             _makeBatchExtraData(
                 uint40(batchHeader.prevTotalElements + batchHeader.batchSize),
@@ -363,7 +312,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
         internal
     {
         require(
-            _batchHeader.batchIndex < batches().length(),
+            _batchHeader.batchIndex < batches.length(),
             "Invalid batch index."
         );
 
@@ -372,7 +321,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             "Invalid batch header."
         );
 
-        batches().deleteElementsAfterInclusive(
+        batches.deleteElementsAfterInclusive(
             _batchHeader.batchIndex,
             _makeBatchExtraData(
                 uint40(_batchHeader.prevTotalElements),
@@ -400,6 +349,6 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             bool
         )
     {
-        return Lib_OVMCodec.hashBatchHeader(_batchHeader) == batches().get(_batchHeader.batchIndex);
+        return Lib_OVMCodec.hashBatchHeader(_batchHeader) == batches.get(_batchHeader.batchIndex);
     }
 }

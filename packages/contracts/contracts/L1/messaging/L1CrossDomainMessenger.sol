@@ -3,9 +3,7 @@ pragma solidity ^0.8.9;
 
 /* Library Imports */
 import { AddressAliasHelper } from "../../standards/AddressAliasHelper.sol";
-import { Lib_AddressResolver } from "../../libraries/resolver/Lib_AddressResolver.sol";
 import { Lib_OVMCodec } from "../../libraries/codec/Lib_OVMCodec.sol";
-import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 import { Lib_SecureMerkleTrie } from "../../libraries/trie/Lib_SecureMerkleTrie.sol";
 import { Lib_DefaultValues } from "../../libraries/constants/Lib_DefaultValues.sol";
 import { Lib_PredeployAddresses } from "../../libraries/constants/Lib_PredeployAddresses.sol";
@@ -34,7 +32,6 @@ import { ReentrancyGuardUpgradeable } from
  */
 contract L1CrossDomainMessenger is
     IL1CrossDomainMessenger,
-    Lib_AddressResolver,
     OwnableUpgradeable,
     PausableUpgradeable,
     ReentrancyGuardUpgradeable
@@ -60,60 +57,14 @@ contract L1CrossDomainMessenger is
     mapping (bytes32 => bool) public blockedMessages;
     mapping (bytes32 => bool) public relayedMessages;
     mapping (bytes32 => bool) public successfulMessages;
-
     address internal xDomainMsgSender = Lib_DefaultValues.DEFAULT_XDOMAIN_SENDER;
-
-
-    /***************
-     * Constructor *
-     ***************/
-
-    /**
-     * This contract is intended to be behind a delegate proxy.
-     * We pass the zero address to the address resolver just to satisfy the constructor.
-     * We still need to set this value in initialize().
-     */
-    constructor()
-        Lib_AddressResolver(address(0))
-    {}
+    ICanonicalTransactionChain public ctc;
+    IStateCommitmentChain public scc;
 
 
     /********************
      * Public Functions *
      ********************/
-
-    /**
-     * @param _libAddressManager Address of the Address Manager.
-     */
-    function initialize(
-        address _libAddressManager
-    )
-        public
-        initializer
-    {
-        require(
-            address(libAddressManager) == address(0),
-            "L1CrossDomainMessenger already intialized."
-        );
-        libAddressManager = Lib_AddressManager(_libAddressManager);
-        xDomainMsgSender = Lib_DefaultValues.DEFAULT_XDOMAIN_SENDER;
-
-        // Initialize upgradable OZ contracts
-        __Context_init_unchained(); // Context is a dependency for both Ownable and Pausable
-        __Ownable_init_unchained();
-        __Pausable_init_unchained();
-        __ReentrancyGuard_init_unchained();
-    }
-
-    /**
-     * Pause relaying.
-     */
-    function pause()
-        external
-        onlyOwner
-    {
-        _pause();
-    }
 
     /**
      * Block a message.
@@ -167,10 +118,8 @@ contract L1CrossDomainMessenger is
     )
         public
     {
-        address ovmCanonicalTransactionChain = resolve("CanonicalTransactionChain");
         // Use the CTC queue length as nonce
-        uint40 nonce =
-            ICanonicalTransactionChain(ovmCanonicalTransactionChain).getQueueLength();
+        uint40 nonce = ctc.getQueueLength();
 
         bytes memory xDomainCalldata = Lib_CrossDomainUtils.encodeXDomainCalldata(
             _target,
@@ -180,7 +129,6 @@ contract L1CrossDomainMessenger is
         );
 
         _sendXDomainMessage(
-            ovmCanonicalTransactionChain,
             xDomainCalldata,
             _gasLimit
         );
@@ -201,7 +149,6 @@ contract L1CrossDomainMessenger is
     )
         public
         nonReentrant
-        whenNotPaused
     {
         bytes memory xDomainCalldata = Lib_CrossDomainUtils.encodeXDomainCalldata(
             _target,
@@ -231,7 +178,7 @@ contract L1CrossDomainMessenger is
         );
 
         require(
-            _target != resolve("CanonicalTransactionChain"),
+            _target != address(ctc),
             "Cannot send L2->L1 messages to L1 system contracts."
         );
 
@@ -274,9 +221,7 @@ contract L1CrossDomainMessenger is
         public
     {
         // Verify that the message is in the queue:
-        address canonicalTransactionChain = resolve("CanonicalTransactionChain");
-        Lib_OVMCodec.QueueElement memory element =
-            ICanonicalTransactionChain(canonicalTransactionChain).getQueueElement(_queueIndex);
+        Lib_OVMCodec.QueueElement memory element = ctc.getQueueElement(_queueIndex);
 
         // Compute the transactionHash
         bytes32 transactionHash = keccak256(
@@ -301,7 +246,6 @@ contract L1CrossDomainMessenger is
         );
 
         _sendXDomainMessage(
-            canonicalTransactionChain,
             xDomainCalldata,
             _gasLimit
         );
@@ -348,13 +292,9 @@ contract L1CrossDomainMessenger is
             bool
         )
     {
-        IStateCommitmentChain ovmStateCommitmentChain = IStateCommitmentChain(
-            resolve("StateCommitmentChain")
-        );
-
         return (
-            ovmStateCommitmentChain.insideFraudProofWindow(_proof.stateRootBatchHeader) == false
-            && ovmStateCommitmentChain.verifyStateCommitment(
+            scc.insideFraudProofWindow(_proof.stateRootBatchHeader) == false
+            && scc.verifyStateCommitment(
                 _proof.stateRoot,
                 _proof.stateRootBatchHeader,
                 _proof.stateRootProof
@@ -418,18 +358,16 @@ contract L1CrossDomainMessenger is
 
     /**
      * Sends a cross domain message.
-     * @param _canonicalTransactionChain Address of the CanonicalTransactionChain instance.
      * @param _message Message to send.
      * @param _gasLimit OVM gas limit for the message.
      */
     function _sendXDomainMessage(
-        address _canonicalTransactionChain,
         bytes memory _message,
         uint256 _gasLimit
     )
         internal
     {
-        ICanonicalTransactionChain(_canonicalTransactionChain).enqueue(
+        ctc.enqueue(
             Lib_PredeployAddresses.L2_CROSS_DOMAIN_MESSENGER,
             _gasLimit,
             _message

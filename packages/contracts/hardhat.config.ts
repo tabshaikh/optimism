@@ -11,9 +11,7 @@ import {
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-etherscan'
-import 'hardhat-deploy'
 import '@typechain/hardhat'
-import './tasks/deploy'
 import './tasks/l2-gasprice'
 import './tasks/set-owner'
 import './tasks/whitelist'
@@ -33,14 +31,10 @@ const config: HardhatUserConfig = {
     hardhat: {
       accounts: DEFAULT_ACCOUNTS_HARDHAT,
       blockGasLimit: RUN_OVM_TEST_GAS * 2,
-      live: false,
-      saveDeployments: false,
-      tags: ['local'],
       hardfork: 'istanbul',
     },
     optimism: {
       url: 'http://127.0.0.1:8545',
-      saveDeployments: false,
     },
     'optimism-kovan': {
       chainId: 69,
@@ -89,15 +83,6 @@ const config: HardhatUserConfig = {
     outDir: 'dist/types',
     target: 'ethers-v5',
   },
-  paths: {
-    deploy: './deploy',
-    deployments: './deployments',
-  },
-  namedAccounts: {
-    deployer: {
-      default: 0,
-    },
-  },
   gasReporter: {
     enabled: enableGasReport,
     currency: 'USD',
@@ -117,9 +102,6 @@ if (
   config.networks[process.env.CONTRACTS_TARGET_NETWORK] = {
     accounts: [process.env.CONTRACTS_DEPLOYER_KEY],
     url: process.env.CONTRACTS_RPC_URL,
-    live: true,
-    saveDeployments: true,
-    tags: [process.env.CONTRACTS_TARGET_NETWORK],
   }
 }
 

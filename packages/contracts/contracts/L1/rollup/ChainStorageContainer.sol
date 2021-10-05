@@ -3,7 +3,6 @@ pragma solidity ^0.8.9;
 
 /* Library Imports */
 import { Lib_Buffer } from "../../libraries/utils/Lib_Buffer.sol";
-import { Lib_AddressResolver } from "../../libraries/resolver/Lib_AddressResolver.sol";
 
 /* Interface Imports */
 import { IChainStorageContainer } from "./IChainStorageContainer.sol";
@@ -21,7 +20,7 @@ import { IChainStorageContainer } from "./IChainStorageContainer.sol";
  *
  * Runtime target: EVM
  */
-contract ChainStorageContainer is IChainStorageContainer, Lib_AddressResolver {
+contract ChainStorageContainer is IChainStorageContainer {
 
     /*************
      * Libraries *
@@ -34,26 +33,8 @@ contract ChainStorageContainer is IChainStorageContainer, Lib_AddressResolver {
      * Variables *
      *************/
 
-    string public owner;
+    address public owner;
     Lib_Buffer.Buffer internal buffer;
-
-
-    /***************
-     * Constructor *
-     ***************/
-
-    /**
-     * @param _libAddressManager Address of the Address Manager.
-     * @param _owner Name of the contract that owns this container (will be resolved later).
-     */
-    constructor(
-        address _libAddressManager,
-        string memory _owner
-    )
-        Lib_AddressResolver(_libAddressManager)
-    {
-        owner = _owner;
-    }
 
 
     /**********************
@@ -62,7 +43,7 @@ contract ChainStorageContainer is IChainStorageContainer, Lib_AddressResolver {
 
     modifier onlyOwner() {
         require(
-            msg.sender == resolve(owner),
+            msg.sender == owner,
             "ChainStorageContainer: Function can only be called by the owner."
         );
         _;
