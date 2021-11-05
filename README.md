@@ -11,7 +11,9 @@
 
 ## TL;DR
 
-This is the primary place where [Optimism](https://optimism.io) works on stuff related to [Optimistic Ethereum](https://research.paradigm.xyz/optimism).
+<div align="center">
+  <a href="https://community.optimism.io"><img alt="OE Architecture" src="https://user-images.githubusercontent.com/14298799/140583457-79412e07-c8e1-4fc3-a8aa-81b4bd622636.png"></a>
+</div>
 
 ## Documentation
 
@@ -39,7 +41,6 @@ Read through [CONTRIBUTING.md](./CONTRIBUTING.md) for a general overview of our 
 * [`integration-tests`](./integration-tests): Integration tests between a L1 testnet, `l2geth`,
 * [`ops`](./ops): Contains Dockerfiles for containerizing each service involved in the protocol,
 as well as a docker-compose file for bringing up local testnets easily
-
 
 ## Branching Model and Releases
 
