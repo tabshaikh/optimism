@@ -19,6 +19,7 @@ import './tasks/set-owner'
 import './tasks/whitelist'
 import './tasks/withdraw-fees'
 import 'hardhat-gas-reporter'
+import 'hardhat-docgen'
 
 // Load environment variables from .env
 dotenv.config()
@@ -108,6 +109,11 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  docgen: {
+    path: './docs',
+    clear: true,
+    runOnCompile: true,
+  }
 }
 
 if (
