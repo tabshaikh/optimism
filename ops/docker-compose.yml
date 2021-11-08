@@ -173,7 +173,7 @@ services:
       - dtl
     image: ethereumoptimism/l2geth:${DOCKER_TAG:-latest}
     deploy:
-      replicas: 0
+      replicas: 1
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.geth
@@ -189,8 +189,8 @@ services:
         ETH1_CTC_DEPLOYMENT_HEIGHT: 8
         RETRIES: 60
     ports:
-      - ${L2GETH_HTTP_PORT:-8549}:8545
-      - ${L2GETH_WS_PORT:-8550}:8546
+      - ${REPLICA_HTTP_PORT:-8549}:8545
+      - ${REPLICA_WS_PORT:-8550}:8546
 
   integration_tests:
     image: ethereumoptimism/integration-tests:${DOCKER_TAG:-latest}
