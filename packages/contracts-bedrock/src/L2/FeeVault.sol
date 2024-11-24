@@ -66,7 +66,7 @@ abstract contract FeeVault {
     }
 
     /// @notice Allow the contract to receive ETH.
-    receive() external payable { }
+    receive() external virtual payable { }
 
     /// @notice Minimum balance before a withdrawal can be triggered.
     function minWithdrawalAmount() public view returns (uint256 amount_) {
@@ -74,17 +74,17 @@ abstract contract FeeVault {
     }
 
     /// @notice Account that will receive the fees. Can be located on L1 or L2.
-    function recipient() public view returns (address recipient_) {
+    function recipient() public virtual view returns (address recipient_) {
         recipient_ = RECIPIENT;
     }
 
     /// @notice Network which the recipient will receive fees on.
-    function withdrawalNetwork() public view returns (Types.WithdrawalNetwork network_) {
+    function withdrawalNetwork() public virtual view returns (Types.WithdrawalNetwork network_) {
         network_ = WITHDRAWAL_NETWORK;
     }
 
     /// @notice Triggers a withdrawal of funds to the fee wallet on L1 or L2.
-    function withdraw() external {
+    function withdraw() external virtual {
         require(
             address(this).balance >= MIN_WITHDRAWAL_AMOUNT,
             "FeeVault: withdrawal amount must be greater than minimum withdrawal amount"
